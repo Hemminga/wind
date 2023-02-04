@@ -1,10 +1,14 @@
+import os
+
 import requests
 import sys
 import re
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 # from pprint import pprint
 
 DEBUG = True
+load_dotenv()
 
 
 def main():
@@ -17,8 +21,9 @@ def main():
 
     soup = BeautifulSoup(response.content, 'html.parser')
     table = soup.table
-    eelde = table.find_all('td', string="Eelde")[0].parent
-    print(eelde.prettify())
+    location = os.getenv('LOCATION')
+    local_weather = table.find_all('td', string=location)[0].parent
+    print(local_weather.prettify())
     uitgifte = soup.find_all(string=re.compile('Uitgifte'))
     print(uitgifte[0])
 
