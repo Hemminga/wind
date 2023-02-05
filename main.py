@@ -1,11 +1,12 @@
 import locale
 import os
-from datetime import datetime
-
+import psycopg
 import requests
-import sys
 import re
+import sys
+import zoneinfo
 from bs4 import BeautifulSoup
+from datetime import datetime
 from dotenv import load_dotenv
 from pprint import pprint
 
@@ -33,13 +34,38 @@ def main():
     print(uitgifte[0])
     datetime_format = 'Uitgifte: %d %B %Y %H:%M uur'
     locale.setlocale(locale.LC_ALL, os.getenv('LOCALE'))
-    datetime_object = datetime.strptime(uitgifte[0], datetime_format)
+    datetime_object = datetime.strptime(uitgifte[0],
+                                        datetime_format).replace(
+                                            tzinfo=zoneinfo.ZoneInfo('Europe/Amsterdam'))
     print(datetime_object)
     data.append(datetime_object)
     if DEBUG:
         pprint(data)
+    # Connect to an existing database
+    with psycopg.connect(
+            f"dbname={os.getenv('DATABASE_NAME')} "
+            f"user={os.getenv('DATABASE_USER')} "
+            f"host={os.getenv('DATABASE_HOST')} "
+            f"port={os.getenv('DATABASE_PORT')} "
+            f"password={os.getenv('DATABASE_PASSWORD')}") as conn:
+        # Open a cursor to perform database operations
+        with conn.cursor() as cur:
+            cur.execute("""INSERT INTO wind(
+                station, weather, temperature, chill,
+                humidity, wind, windspeed, windgusts,
+                visibility, pressure, observation)
+                VALUES( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT(station, observation) DO NOTHING;""",
+                        (data[0], data[1], data[2], data[3], data[4], data[5],
+                         data[6], data[7], data[8], data[9],
+                         data[10]))
+            cur.execute("""SELECT * FROM wind
+                ORDER BY observation DESC;""")
+            cur.fetchone()
+            for record in cur:
+                print(record)
+            conn.commit()
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
