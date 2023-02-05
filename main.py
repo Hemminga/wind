@@ -1,11 +1,13 @@
+import locale
 import os
+from datetime import datetime
 
 import requests
 import sys
 import re
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-# from pprint import pprint
+from pprint import pprint
 
 DEBUG = True
 load_dotenv()
@@ -24,8 +26,18 @@ def main():
     location = os.getenv('LOCATION')
     local_weather = table.find_all('td', string=location)[0].parent
     print(local_weather.prettify())
+    data = []
+    for td in local_weather.find_all('td'):
+        data.append(td.text)
     uitgifte = soup.find_all(string=re.compile('Uitgifte'))
     print(uitgifte[0])
+    datetime_format = 'Uitgifte: %d %B %Y %H:%M uur'
+    locale.setlocale(locale.LC_ALL, os.getenv('LOCALE'))
+    datetime_object = datetime.strptime(uitgifte[0], datetime_format)
+    print(datetime_object)
+    data.append(datetime_object)
+    if DEBUG:
+        pprint(data)
 
 
 # Press the green button in the gutter to run the script.
